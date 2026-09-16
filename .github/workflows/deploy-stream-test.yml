@@ -12,9 +12,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy Stream Test Worker
+      - name: Show worker files
+        run: |
+          pwd
+          ls -la
+          ls -la worker-stream-test
+          cat worker-stream-test/wrangler.toml
+
+      - name: Deploy Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
-          workingDirectory: worker-stream-test
           command: deploy
+          workingDirectory: worker-stream-test
