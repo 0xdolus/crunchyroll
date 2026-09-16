@@ -1,0 +1,124 @@
+name: Spec Validation
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check required top-level files
+        run: |
+          test -f README.md
+          test -f VERSION.md
+          test -f FREEZE.md
+          test -f PROJECT_MANIFEST.json
+          test -f DEPENDENCY_GRAPH.json
+          test -d 00_FOUNDATION
+          test -d 03_COMPONENT_LIBRARY
+          test -d 04_SCREEN_BLUEPRINTS
+
+      - name: Validate front matter (spec_version + artifact_id)
+        run: |
+          python3 - <<'PY'
+          import sys
+          from pathlib import Path
+          missing = 0
+          no_artifact = 0
+          for p in Path(".").rglob("*.md"):
+              text = p.read_text(encoding="utf-8", errors="replace")
+              if not text.startswith("---"):
+                  print(f"Missing front matter: {p}")
+                  missing += 1
+                  continue
+              if "artifact_id:" not in text.split("---", 2)[1]:
+                  print(f"Missing artifact_id: {p}")
+                  no_artifact += 1
+          if missing or no_artifact:
+              print(f"{missing} missing front matter, {no_artifact} missing artifact_id")
+              sys.exit(1)
+          print("All Markdown files have front matter and artifact_id")
+          PY
+
+      - name: artifact_id uniqueness
+        run: |
+          python3 - <<'PY'
+          import re, sys
+          from pathlib import Path
+          ids = {}
+          for p in Path(".").rglob("*.md"):
+              text = p.read_text(encoding="utf-8", errors="replace")
+              m = re.search(r"^artifact_id:\s*(\S+)", text, re.M)
+              if m:
+                  aid = m.group(1)
+                  if aid in ids:
+                      print(f"Duplicate artifact_id {aid}:\n  {ids[aid]}\n  {p}")
+                      sys.exit(1)
+                  ids[aid] = str(p)
+          print(f"Unique artifact_ids: {len(ids)}")
+          PY
+
+      - name: Verify LOCKED_CONTENT_HASH
+        run: |
+          python3 - <<'PY'
+          import json, hashlib, sys
+          from pathlib import Path
+
+          LOCKED_DIRS = [
+              "00_FOUNDATION", "01_PHASE_PLAYBOOKS", "02_DESIGN_SYSTEM",
+              "03_COMPONENT_LIBRARY", "04_SCREEN_BLUEPRINTS", "05_NAVIGATION",
+              "06_STATE_ARCHITECTURE", "07_DATA_LAYER", "08_PROVIDER_CONTRACTS",
+              "09_PLAYER_MODULE", "10_LIBRARY_PROFILE", "11_QA_RELEASE",
+              "12_AI_GUIDE", "templates"
+          ]
+
+          def is_locked(rel):
+              return any(rel.startswith(d + "/") or rel == d for d in LOCKED_DIRS)
+
+          manifest = json.loads(Path("PROJECT_MANIFEST.json").read_text())
+          expected = manifest["lock"]["LOCKED_CONTENT_HASH"]
+
+          locked = {}
+          for p in Path(".").rglob("*"):
+              if not p.is_file():
+                  continue
+              rel = str(p).replace("\\", "/")
+              if is_locked(rel):
+                  locked[rel] = hashlib.sha256(p.read_bytes()).hexdigest()
+
+          combined = "\n".join(f"{path}:{h}" for path, h in sorted(locked.items()))
+          actual = hashlib.sha256(combined.encode()).hexdigest()
+
+          print("Expected LOCKED_CONTENT_HASH:", expected)
+          print("Actual:                     ", actual)
+          print("Locked file count:          ", len(locked))
+          if actual != expected:
+              print("LOCKED_CONTENT_HASH mismatch")
+              sys.exit(1)
+          print("LOCKED_CONTENT_HASH verified")
+          PY
+
+      - name: Manifest total_files matches filesystem
+        run: |
+          python3 - <<'PY'
+          import json, sys, os
+          from pathlib import Path
+          manifest = json.loads(Path("PROJECT_MANIFEST.json").read_text())
+          reported = manifest["counts"]["total_files"]
+          actual = 0
+          for r, d, f in os.walk("."):
+              if ".git" in r.split(os.sep):
+                  continue
+              actual += len(f)
+          print(f"Manifest total_files: {reported}")
+          print(f"Filesystem files:     {actual}")
+          if reported != actual:
+              print("Count mismatch")
+              sys.exit(1)
+          print("File count matches")
+          PY

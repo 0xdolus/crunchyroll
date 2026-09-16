@@ -1,0 +1,16 @@
+name: Release Spec ZIP
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create specification ZIP
+        run: zip -r Crunchyroll_Android_Master_Build_Spec_${{ github.ref_name }}.zip . -x "*.git*"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: spec-zip
+          path: Crunchyroll_Android_Master_Build_Spec_*.zip

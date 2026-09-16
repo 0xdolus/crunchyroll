@@ -1,0 +1,12 @@
+name: Preview Validation
+on: [pull_request, workflow_dispatch]
+jobs:
+  previews:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check HTML previews exist
+        run: |
+          count=$(find previews -name "*.html" | wc -l)
+          echo "Found $count HTML preview files"
+          test "$count" -gt 50
