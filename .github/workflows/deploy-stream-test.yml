@@ -9,10 +9,15 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: worker-stream-test
+
     steps:
       - uses: actions/checkout@v4
 
-      - uses: cloudflare/wrangler-action@v3
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
-          workingDirectory: worker-stream-test
+          command: deploy
