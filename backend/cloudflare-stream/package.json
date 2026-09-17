@@ -1,0 +1,9 @@
+{
+  "name": "crunchyroll-stream-test",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  }
+}

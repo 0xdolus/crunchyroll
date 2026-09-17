@@ -1,0 +1,22 @@
+name: Deploy Cloudflare Stream Worker
+
+on:
+  push:
+    branches:
+      - stream-test
+    paths:
+      - backend/cloudflare-stream/**
+      - .github/workflows/deploy-stream-worker.yml
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CF_API_TOKEN }}
+          workingDirectory: backend/cloudflare-stream
+          command: deploy
