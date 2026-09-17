@@ -21,11 +21,18 @@ export default {
       }
 
       const upstream = await fetch(target, {
+        method: "GET",
         headers: {
-          Referer: REFERER,
-          Origin: "https://kwik.cx",
           "User-Agent":
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/140.0 Safari/537.36",
+            "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36",
+          "Accept": "*/*",
+          "Accept-Language": "en-US,en;q=0.9",
+          "Accept-Encoding": "identity",
+          "Referer": "https://strm.cx/",
+          "Origin": "https://strm.cx",
+          "Sec-Fetch-Site": "cross-site",
+          "Sec-Fetch-Mode": "cors",
+          "Sec-Fetch-Dest": "empty",
         },
       });
 
