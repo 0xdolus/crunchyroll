@@ -13,7 +13,7 @@ export default {
     }
 
     // Proxy endpoint
-    if (url.pathname === "/proxy") {
+    if (url.pathname === "/proxy" || url.pathname === "/proxy/seg.ts") {
       const target = url.searchParams.get("url");
 
       if (!target) {
@@ -75,7 +75,12 @@ export default {
 
         playlist = playlist.replace(
           /^https?:\/\/.*$/gm,
-          (line) => `${url.origin}/proxy?url=${encodeURIComponent(line)}`
+          (line) => {
+            if (line.includes("/seg.jpg")) {
+              return `${url.origin}/proxy/seg.ts?url=${encodeURIComponent(line)}`;
+            }
+            return `${url.origin}/proxy?url=${encodeURIComponent(line)}`;
+          }
         );
 
         return new Response(playlist, {
