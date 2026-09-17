@@ -1,0 +1,31 @@
+name: Sync Cron
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sync trending
+        run: |
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.BACKEND_URL }}/sync/trending"
+
+      - name: Sync seasonal
+        run: |
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.BACKEND_URL }}/sync/seasonal"
+
+      - name: Sync metadata
+        run: |
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
+            -H "Content-Type: application/json" \
+            "${{ secrets.BACKEND_URL }}/sync/metadata"

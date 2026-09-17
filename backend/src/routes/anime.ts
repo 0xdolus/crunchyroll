@@ -1,0 +1,103 @@
+import { FastifyInstance } from "fastify";
+import { findAnimeById, findAnimeByAnilistId, upsertAnime } from "../repositories/anime.js";
+import { findEpisodesByAnimeId } from "../repositories/episodes.js";
+import { mergeAnimeMetadata } from "../services/metadata/merge.js";
+import { animeCache, episodesCache } from "../lib/cache.js";
+import { rateLimitConfigs } from "../middleware/rate-limit.js";
+
+export async function animeRoutes(server: FastifyInstance) {
+  server.get(
+    "/anime/:id",
+    {
+      config: {
+        rateLimit: rateLimitConfigs.anime,
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const cacheKey = `anime:${id}`;
+
+      const cached = animeCache.get(cacheKey);
+      if (cached) {
+        return reply.status(200).send(cached);
+      }
+
+      let anime = await findAnimeById(id);
+      if (!anime) {
+        // Try as anilist numeric id
+        const anilistId = Number(id);
+        if (!Number.isNaN(anilistId)) {
+          anime = await findAnimeByAnilistId(anilistId);
+          if (!anime) {
+            const merged = await mergeAnimeMetadata(anilistId);
+            if (merged) {
+              anime = await upsertAnime({
+                anilist_id: merged.anilist_id,
+                mal_id: merged.mal_id,
+                title: merged.title,
+                title_english: merged.title_english,
+                title_romaji: merged.title_romaji,
+                title_native: merged.title_native,
+                description: merged.description,
+                cover_image: merged.cover_image,
+                banner_image: merged.banner_image,
+                genres: merged.genres,
+                status: merged.status,
+                episodes_count: merged.episodes_count,
+                season: merged.season,
+                season_year: merged.season_year,
+                average_score: merged.average_score,
+                popularity: merged.popularity,
+                format: merged.format,
+                source: merged.source,
+                studios: merged.studios,
+              });
+            }
+          }
+        }
+      }
+
+      if (!anime) {
+        return reply.status(404).send({
+          statusCode: 404,
+          error: "Not Found",
+          message: "Anime not found",
+        });
+      }
+
+      animeCache.set(cacheKey, anime);
+      return reply.status(200).send(anime);
+    }
+  );
+
+  server.get(
+    "/anime/:id/episodes",
+    {
+      config: {
+        rateLimit: rateLimitConfigs.anime,
+      },
+    },
+    async (request, reply) => {
+      const { id } = request.params as { id: string };
+      const cacheKey = `episodes:${id}`;
+
+      const cached = episodesCache.get(cacheKey);
+      if (cached) {
+        return reply.status(200).send(cached);
+      }
+
+      const anime = await findAnimeById(id);
+      if (!anime) {
+        return reply.status(404).send({
+          statusCode: 404,
+          error: "Not Found",
+          message: "Anime not found",
+        });
+      }
+
+      const episodes = await findEpisodesByAnimeId(id);
+      episodesCache.set(cacheKey, episodes);
+      return reply.status(200).send({ animeId: id, episodes });
+    }
+  );
+}
