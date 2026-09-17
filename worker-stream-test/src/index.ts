@@ -17,7 +17,14 @@ export default {
       const target = url.searchParams.get("url");
 
       if (!target) {
-        return new Response("Missing url parameter", { status: 400 });
+        return new Response(upstream.body, {
+        status: upstream.status,
+        headers: {
+          "Content-Type": upstream.headers.get("content-type") || "application/octet-stream",
+          "Cache-Control": "public, max-age=60",
+          "Access-Control-Allow-Origin": "*",
+        },
+      });
       }
 
       const upstream = await fetch(target, {
