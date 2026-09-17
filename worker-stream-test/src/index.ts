@@ -30,7 +30,16 @@ export default {
       });
 
       if (!upstream.ok) {
-        return new Response(`Upstream error: ${upstream.status}`, {
+        const body = await upstream.text();
+
+        return Response.json({
+          worker: "stream-test",
+          upstream_status: upstream.status,
+          upstream_content_type: upstream.headers.get("content-type"),
+          upstream_server: upstream.headers.get("server"),
+          upstream_location: upstream.headers.get("location"),
+          upstream_body_preview: body.slice(0, 1000),
+        }, {
           status: upstream.status,
         });
       }
