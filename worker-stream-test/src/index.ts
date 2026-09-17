@@ -86,12 +86,18 @@ export default {
         });
       }
 
+      let type =
+        upstream.headers.get("content-type") || "application/octet-stream";
+
+      // Watami serves MPEG-TS segments as .jpg with image/jpeg.
+      if (target.includes("/seg.jpg")) {
+        type = "video/mp2t";
+      }
+
       return new Response(upstream.body, {
         status: upstream.status,
         headers: {
-          "Content-Type":
-            upstream.headers.get("content-type") ||
-            "application/octet-stream",
+          "Content-Type": type,
           "Cache-Control": "public, max-age=60",
           "Access-Control-Allow-Origin": "*",
         },
