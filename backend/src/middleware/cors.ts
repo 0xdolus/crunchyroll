@@ -28,8 +28,4 @@ export async function registerCors(server: FastifyInstance) {
     allowedHeaders: ["Content-Type", "Authorization"],
   });
 
-  // Ensure OPTIONS returns 204
-  server.options("/*", async (_req, reply) => {
-    return reply.status(204).send();
-  });
 }
