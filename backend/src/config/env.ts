@@ -34,8 +34,8 @@ export function loadEnv(): Env {
     const issues = parsed.error.issues
       .map((i) => `  - ${i.path.join(".")}: ${i.message}`)
       .join("\n");
-    console.error("Invalid environment variables:\n" + issues);
-    process.exit(1);
+
+    throw new Error("Invalid environment variables:\n" + issues);
   }
 
   cachedEnv = parsed.data;

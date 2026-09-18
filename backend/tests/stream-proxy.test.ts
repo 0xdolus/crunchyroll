@@ -35,7 +35,7 @@ describe("proxySegment pathname rule", () => {
   const originalEnv = process.env.STREAM_PROXY_URL;
 
   beforeAll(() => {
-    process.env.STREAM_PROXY_URL = "https://stream-proxy.example.com";
+    process.env.STREAM_PROXY_URL = "https://crunchyroll-stream-test.sniffingbug.workers.dev";
   });
 
   afterAll(() => {
@@ -76,7 +76,7 @@ describe("fixture-based proxy verification", () => {
     }
     // Set proxy base if needed; fixtures already contain full expected URLs
     process.env.STREAM_PROXY_URL =
-      process.env.STREAM_PROXY_URL || "https://stream-proxy.example.com";
+      process.env.STREAM_PROXY_URL || "https://crunchyroll-stream-test.sniffingbug.workers.dev";
     const result = proxySegment(upstream);
     expect(result.trim()).toBe(expected.trim());
   });

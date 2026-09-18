@@ -4,7 +4,7 @@ process.env.PORT ||= "3000";
 
 process.env.SUPABASE_URL ||= "https://example.supabase.co";
 process.env.SUPABASE_PUBLISHABLE_KEY ||= "sb_publishable_test";
-process.env.SUPABASE_SECRET_KEY ||= "sb_secret_test";
+process.env.SUPABASE_SERVICE_ROLE_KEY ||= "sb_secret_test";
 
 process.env.TMDB_ACCESS_TOKEN ||= "tmdb_test_token";
 
@@ -14,7 +14,7 @@ process.env.JIKAN_ENDPOINT ||= "https://api.jikan.moe/v4";
 process.env.CONSUMET_ENDPOINT ||= "https://consumet.test";
 process.env.CONSUMET_FALLBACK_ENDPOINT ||= "https://consumet-fallback.test";
 
-process.env.STREAM_PROXY_URL ||= "https://stream.example.workers.dev";
+process.env.STREAM_PROXY_URL ||= "https://crunchyroll-stream-test.sniffingbug.workers.dev";
 
 process.env.SYNC_SECRET ||= "sync_test_secret";
 
