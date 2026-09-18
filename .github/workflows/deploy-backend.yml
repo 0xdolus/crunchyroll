@@ -1,14 +1,14 @@
-name: Deploy Backend
+name: Build and Test Backend
 
 on:
   push:
     branches:
-      - main
       - stream-test
-      - backend-fixtures
+      - main
     paths:
       - "backend/**"
       - ".github/workflows/deploy-backend.yml"
+
   pull_request:
     paths:
       - "backend/**"
@@ -16,34 +16,35 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: backend
 
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+      TMDB_ACCESS_TOKEN: ${{ secrets.TMDB_ACCESS_TOKEN }}
+      STREAM_PROXY_URL: ${{ secrets.STREAM_PROXY_URL }}
+      SYNC_SECRET: ${{ secrets.SYNC_SECRET }}
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: backend/package-lock.json
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install --legacy-peer-deps
 
-      - name: Build
+      - name: TypeScript build
         run: npm run build
 
-      - name: Test
+      - name: Run tests
         run: npm test
-        env:
-          NODE_ENV: test
-          SUPABASE_URL: https://example.supabase.co
-          SUPABASE_SERVICE_ROLE_KEY: test-key
-          TMDB_ACCESS_TOKEN: test-token
-          CONSUMET_ENDPOINT: https://api.consumet.org
-          STREAM_PROXY_URL: https://stream-proxy.example.com
-          SYNC_SECRET: test-sync-secret
-          ALLOWED_ORIGINS: http://localhost:3000
