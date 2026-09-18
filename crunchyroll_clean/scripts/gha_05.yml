@@ -1,9 +1,0 @@
-# GitHub Actions helper 05
-name: Helper 05
-on: workflow_dispatch
-jobs:
-  run:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: echo "Helper 05"

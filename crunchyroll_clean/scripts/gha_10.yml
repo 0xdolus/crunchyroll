@@ -1,9 +1,0 @@
-# GitHub Actions helper 10
-name: Helper 10
-on: workflow_dispatch
-jobs:
-  run:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: echo "Helper 10"
