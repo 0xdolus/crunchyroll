@@ -1,0 +1,8 @@
+HTTP/1.1 429 Too Many Requests
+x-ratelimit-limit: 60
+x-ratelimit-remaining: 0
+x-ratelimit-reset: 1750000000
+retry-after: 42
+content-type: application/json
+
+{"statusCode":429,"error":"Too Many Requests","message":"Rate limit exceeded. Retry after 42 seconds."}

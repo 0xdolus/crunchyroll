@@ -1,0 +1,5 @@
+# Local development only.
+# Do not commit real secrets.
+
+# Add only when we actually need provider-specific secrets.
+# EXAMPLE_SECRET=
