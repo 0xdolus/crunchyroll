@@ -14,14 +14,14 @@ export type Episode = {
   fillerType?: string | null;
 };
 
-type MiruroEpisodeResponse = {
+type MiruroResponse = {
   results?: {
     providers?: Record<
       string,
       {
         episodes?: {
-          sub?: Episode[];
-          dub?: Episode[];
+          sub?: Omit<Episode, "provider" | "audio">[];
+          dub?: Omit<Episode, "provider" | "audio">[];
         };
       }
     >;
@@ -29,44 +29,30 @@ type MiruroEpisodeResponse = {
 };
 
 export async function fetchEpisodes(anilistId: number): Promise<Episode[]> {
-  const url = `${env.MIRURO_ENDPOINT.replace(/\/$/, "")}/episodes/${anilistId}`;
-
-  const res = await fetch(url);
+  const res = await fetch(
+    `${env.MIRURO_ENDPOINT.replace(/\/$/, "")}/episodes/${anilistId}`
+  );
 
   if (!res.ok) {
     throw new Error(`Miruro episodes failed (${res.status})`);
   }
 
-  const data = (await res.json()) as MiruroEpisodeResponse;
+  const data = (await res.json()) as MiruroResponse;
+
   const providers = data.results?.providers ?? {};
   const episodes: Episode[] = [];
 
-  for (const [provider, providerData] of Object.entries(providers)) {
-    const sub = providerData.episodes?.sub ?? [];
-    const dub = providerData.episodes?.dub ?? [];
-
-    for (const ep of sub) {
-      episodes.push({
-        ...ep,
-        provider,
-        audio: "sub",
-      });
+  for (const [provider, value] of Object.entries(providers)) {
+    for (const ep of value.episodes?.sub ?? []) {
+      episodes.push({ ...ep, provider, audio: "sub" });
     }
 
-    for (const ep of dub) {
-      episodes.push({
-        ...ep,
-        provider,
-        audio: "dub",
-      });
+    for (const ep of value.episodes?.dub ?? []) {
+      episodes.push({ ...ep, provider, audio: "dub" });
     }
   }
 
-  episodes.sort((a, b) => {
-    if (a.number !== b.number) return a.number - b.number;
-    if (a.audio !== b.audio) return a.audio === "sub" ? -1 : 1;
-    return a.provider.localeCompare(b.provider);
-  });
+  episodes.sort((a, b) => a.number - b.number);
 
   return episodes;
 }
