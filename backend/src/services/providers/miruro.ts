@@ -1,4 +1,4 @@
-import { env } from "../../config/env.js";
+import { getEnv } from "../../config/env.js";
 
 type MiruroWatch = {
   results: {
@@ -14,8 +14,7 @@ type MiruroWatch = {
 };
 
 export async function resolveProxyPlaylist(episodeId: string) {
-  // episodeId is expected to already be:
-  // watch/kiwi/20/sub/animepahe-1
+  const env = getEnv();
 
   const endpoint =
     `${env.MIRURO_ENDPOINT.replace(/\/$/, "")}/${episodeId}`;
