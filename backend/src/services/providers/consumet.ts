@@ -10,19 +10,53 @@ export interface ConsumetSource {
   isM3U8?: boolean;
 }
 
+export interface ConsumetEpisode {
+  id: string;
+  number: number;
+  title?: string | null;
+  description?: string | null;
+  image?: string | null;
+}
+
 export interface ConsumetWatchResult {
   sources: ConsumetSource[];
   subtitles?: Array<{ url: string; lang: string }>;
   headers?: Record<string, string>;
 }
 
+/* ---------- NEW: episode discovery ---------- */
+
+export async function fetchAnimeEpisodes(
+  anilistId: number
+): Promise<ConsumetEpisode[]> {
+  const env = getEnv();
+
+  const url =
+    `${env.CONSUMET_ENDPOINT.replace(/\/$/, "")}` +
+    `/meta/anilist/info/${anilistId}?provider=gogoanime`;
+
+  const { data } = await axios.get(url, { timeout: 15000 });
+
+  return (data.episodes ?? []).map((ep: any) => ({
+    id: ep.id,
+    number: Number(ep.number ?? ep.episodeNumber ?? ep.episode),
+    title: ep.title ?? null,
+    description: ep.description ?? null,
+    image: ep.image ?? ep.thumbnail ?? null,
+  }));
+}
+
+/* ---------- existing stream logic ---------- */
+
 async function fetchFromEndpoint(
   endpoint: string,
   episodeId: string
 ): Promise<ConsumetWatchResult | null> {
   try {
-    // Consumet-style path for anime episode sources (common pattern)
-    const url = `${endpoint.replace(/\/$/, "")}/anime/gogoanime/watch/${encodeURIComponent(episodeId)}`;
+    const url =
+      `${endpoint.replace(/\/$/, "")}` +
+      `/anime/gogoanime/watch/${encodeURIComponent(episodeId)}`;
+
     const { data } = await axios.get(url, {
       timeout: 15000,
       headers: {
@@ -58,43 +92,40 @@ export async function fetchStreamSources(
   episodeId: string
 ): Promise<ConsumetWatchResult> {
   const env = getEnv();
+
   const primary = await fetchFromEndpoint(env.CONSUMET_ENDPOINT, episodeId);
-  if (primary && primary.sources.length > 0) {
-    return primary;
-  }
+  if (primary?.sources.length) return primary;
 
   const fallback = await fetchFromEndpoint(
     env.CONSUMET_FALLBACK_ENDPOINT,
     episodeId
   );
-  if (fallback && fallback.sources.length > 0) {
-    return fallback;
-  }
+
+  if (fallback?.sources.length) return fallback;
 
   throw providerUnavailable();
 }
 
-/**
- * Pick best HLS source and return a Worker-compatible proxy playlist URL.
- * Optionally rewrites the playlist content if fetched.
- */
 export async function resolveProxyPlaylist(
   episodeId: string
-): Promise<{ playlistUrl: string; expiresAt: Date; rawSources: ConsumetSource[] }> {
+): Promise<{
+  playlistUrl: string;
+  expiresAt: Date;
+  rawSources: ConsumetSource[];
+}> {
   const result = await fetchStreamSources(episodeId);
-  const hls = result.sources.find((s) => s.isM3U8 || s.url.includes(".m3u8"));
+
+  const hls = result.sources.find(
+    (s) => s.isM3U8 || s.url.includes(".m3u8")
+  );
+
   const source = hls ?? result.sources[0];
 
-  if (!source) {
-    throw providerUnavailable();
-  }
-
-  // Expire after 4 hours by default (streams usually short-lived)
-  const expiresAt = new Date(Date.now() + 4 * 60 * 60 * 1000);
+  if (!source) throw providerUnavailable();
 
   return {
     playlistUrl: proxyPlaylist(source.url),
-    expiresAt,
+    expiresAt: new Date(Date.now() + 4 * 60 * 60 * 1000),
     rawSources: result.sources,
   };
 }
