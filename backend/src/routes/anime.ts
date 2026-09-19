@@ -5,6 +5,7 @@ import {
   upsertAnime,
 } from "../repositories/anime.js";
 import { findEpisodesByAnimeId } from "../repositories/episodes.js";
+import { fetchEpisodes } from "../services/providers/miruroEpisodes.js";
 import { mergeAnimeMetadata } from "../services/metadata/merge.js";
 import { animeCache, episodesCache } from "../lib/cache.js";
 import { rateLimitConfigs } from "../middleware/rate-limit.js";
@@ -114,7 +115,7 @@ export async function animeRoutes(server: FastifyInstance) {
         });
       }
 
-      const episodes = await findEpisodesByAnimeId(anime.id);
+      const episodes = await fetchEpisodes(Number(animeId));
 
       const response = {
         animeId: id,
