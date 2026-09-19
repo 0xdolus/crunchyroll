@@ -5,14 +5,31 @@ const env = getEnv();
 export type Episode = {
   id: string;
   number: number;
-  title?: string;
-  image?: string;
-  airDate?: string;
+  title?: string | null;
+  image?: string | null;
+  airDate?: string | null;
+  audio: "sub" | "dub";
+  provider: string;
   filler?: boolean;
+  fillerType?: string | null;
+};
+
+type MiruroEpisodeResponse = {
+  results?: {
+    providers?: Record<
+      string,
+      {
+        episodes?: {
+          sub?: Episode[];
+          dub?: Episode[];
+        };
+      }
+    >;
+  };
 };
 
 export async function fetchEpisodes(anilistId: number): Promise<Episode[]> {
-  const url = `${env.MIRURO_ENDPOINT}/episodes/${anilistId}`;
+  const url = `${env.MIRURO_ENDPOINT.replace(/\/$/, "")}/episodes/${anilistId}`;
 
   const res = await fetch(url);
 
@@ -20,19 +37,36 @@ export async function fetchEpisodes(anilistId: number): Promise<Episode[]> {
     throw new Error(`Miruro episodes failed (${res.status})`);
   }
 
-  const data = await res.json();
-
+  const data = (await res.json()) as MiruroEpisodeResponse;
   const providers = data.results?.providers ?? {};
+  const episodes: Episode[] = [];
 
-  // Prefer kiwi provider.
-  const kiwi = providers.kiwi?.episodes?.sub;
-  if (Array.isArray(kiwi) && kiwi.length) return kiwi;
+  for (const [provider, providerData] of Object.entries(providers)) {
+    const sub = providerData.episodes?.sub ?? [];
+    const dub = providerData.episodes?.dub ?? [];
 
-  // Otherwise return first provider that has sub episodes.
-  for (const provider of Object.values(providers) as any[]) {
-    const sub = provider?.episodes?.sub;
-    if (Array.isArray(sub) && sub.length) return sub;
+    for (const ep of sub) {
+      episodes.push({
+        ...ep,
+        provider,
+        audio: "sub",
+      });
+    }
+
+    for (const ep of dub) {
+      episodes.push({
+        ...ep,
+        provider,
+        audio: "dub",
+      });
+    }
   }
 
-  return [];
+  episodes.sort((a, b) => {
+    if (a.number !== b.number) return a.number - b.number;
+    if (a.audio !== b.audio) return a.audio === "sub" ? -1 : 1;
+    return a.provider.localeCompare(b.provider);
+  });
+
+  return episodes;
 }
