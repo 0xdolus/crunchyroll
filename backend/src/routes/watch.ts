@@ -6,7 +6,7 @@ import {
   isStreamExpired,
 } from "../repositories/streams.js";
 import { findEpisodeById } from "../repositories/episodes.js";
-import { resolveProxyPlaylist } from "../services/providers/consumet.js";
+import { resolveProxyPlaylist } from "../services/providers/miruro.js";
 import { rateLimitConfigs } from "../middleware/rate-limit.js";
 import type { WatchResponse } from "../types/stream.js";
 
@@ -43,7 +43,7 @@ export async function watchRoutes(server: FastifyInstance) {
         return reply.status(200).send(body);
       }
 
-      // 3/4. Expired or missing → refresh via Consumet
+      // 3/4. Expired or missing → refresh via Miruro
       const resolved = await resolveProxyPlaylist(episodeId);
 
       if (stream) {
@@ -52,12 +52,12 @@ export async function watchRoutes(server: FastifyInstance) {
           playlist_url: resolved.rawSources[0]?.url ?? "",
           proxy_playlist_url: resolved.playlistUrl,
           expires_at: resolved.expiresAt.toISOString(),
-          provider: "consumet",
+          provider: "miruro",
         });
       } else {
         stream = await insertStream({
           episode_id: episodeId,
-          provider: "consumet",
+          provider: "miruro",
           quality: resolved.rawSources[0]?.quality ?? null,
           playlist_url: resolved.rawSources[0]?.url ?? "",
           proxy_playlist_url: resolved.playlistUrl,

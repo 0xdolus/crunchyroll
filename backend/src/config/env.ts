@@ -7,11 +7,7 @@ const envSchema = z.object({
   TMDB_ACCESS_TOKEN: z.string().min(1),
   ANILIST_ENDPOINT: z.string().url().default("https://graphql.anilist.co"),
   JIKAN_ENDPOINT: z.string().url().default("https://api.jikan.moe/v4"),
-  CONSUMET_ENDPOINT: z.string().url(),
-  CONSUMET_FALLBACK_ENDPOINT: z
-    .string()
-    .url()
-    .default("https://api.consumet.org"),
+  MIRURO_ENDPOINT: z.string().url().default("https://mirurotvapi.vercel.app/api"),
   STREAM_PROXY_URL: z.string().url(),
   SYNC_SECRET: z.string().min(1),
   ALLOWED_ORIGINS: z.string().min(1),
