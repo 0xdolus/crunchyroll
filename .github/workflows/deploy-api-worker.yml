@@ -19,4 +19,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CF_API_TOKEN }}
           workingDirectory: cloudflare/worker
-          command: deploy
+          command: deploy --config wrangler.toml
