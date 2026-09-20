@@ -6,8 +6,9 @@ import {
   isStreamExpired,
 } from "../repositories/streams.js";
 import { findEpisodeById } from "../repositories/episodes.js";
-import { resolveProxyPlaylist } from "../services/providers/miruro.js";
+import { resolveMiruroWithFallback } from "../services/providers/miruro.js";
 import { rateLimitConfigs } from "../middleware/rate-limit.js";
+import { AppError, providerUnavailable } from "../middleware/errors.js";
 import type { WatchResponse } from "../types/stream.js";
 
 export async function watchRoutes(server: FastifyInstance) {
@@ -21,6 +22,7 @@ export async function watchRoutes(server: FastifyInstance) {
     async (request, reply) => {
       const { episodeId } = request.params as { episodeId: string };
 
+      // 1. Load Supabase episode (episodeId is always the Supabase UUID)
       const episode = await findEpisodeById(episodeId);
       if (!episode) {
         return reply.status(404).send({
@@ -30,10 +32,10 @@ export async function watchRoutes(server: FastifyInstance) {
         });
       }
 
-      // 1. Look up cached stream
+      // 2. Look up cached stream
       let stream = await findStreamByEpisodeId(episodeId);
 
-      // 2. If unexpired → return cached proxy playlist
+      // 3. If unexpired → return cached proxy playlist
       if (stream && !isStreamExpired(stream)) {
         const body: WatchResponse = {
           episodeId,
@@ -43,38 +45,47 @@ export async function watchRoutes(server: FastifyInstance) {
         return reply.status(200).send(body);
       }
 
-      // 3/4. Expired or missing → refresh via Miruro
-      const resolved = await resolveProxyPlaylist(episodeId);
+      // 4. Resolve via Miruro using provider_episode_id (never the Supabase UUID)
+      const watchId = episode.provider_episode_id;
+      if (!watchId) {
+        throw providerUnavailable();
+      }
 
+      let resolved;
+      try {
+        resolved = await resolveMiruroWithFallback(watchId);
+      } catch (err) {
+        if (err instanceof AppError) throw err;
+        throw providerUnavailable();
+      }
+
+      // 5. Persist refreshed stream (preserve cache schema / expiry semantics)
       if (stream) {
-        // 5. Save refreshed stream
         stream = await updateStream(stream.id, {
-          playlist_url: resolved.rawSources[0]?.url ?? "",
-          proxy_playlist_url: resolved.playlistUrl,
+          playlist_url: resolved.playlistUrl,
+          proxy_playlist_url: resolved.proxyPlaylistUrl,
           expires_at: resolved.expiresAt.toISOString(),
           provider: "miruro",
+          quality: resolved.quality,
         });
       } else {
         stream = await insertStream({
           episode_id: episodeId,
           provider: "miruro",
-          quality: resolved.rawSources[0]?.quality ?? null,
-          playlist_url: resolved.rawSources[0]?.url ?? "",
-          proxy_playlist_url: resolved.playlistUrl,
+          quality: resolved.quality,
+          playlist_url: resolved.playlistUrl,
+          proxy_playlist_url: resolved.proxyPlaylistUrl,
           expires_at: resolved.expiresAt.toISOString(),
         });
       }
 
-      // 6. Return Worker-compatible proxy URL
-      // 7. Never return stale playlist
+      // 6. Return existing public response shape
       const body: WatchResponse = {
         episodeId,
         playlistUrl: stream.proxy_playlist_url,
         expiresAt: stream.expires_at,
-        sources: resolved.rawSources.map((s) => ({
-          quality: s.quality ?? "auto",
-          url: s.url,
-        })),
+        sources: resolved.sources,
+        subtitles: resolved.subtitles,
       };
       return reply.status(200).send(body);
     }

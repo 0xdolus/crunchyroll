@@ -4,10 +4,12 @@ import {
   findAnimeByAnilistId,
   upsertAnime,
 } from "../repositories/anime.js";
-import { fetchEpisodes } from "../services/providers/miruroEpisodes.js";
+import { findEpisodesByAnimeId } from "../repositories/episodes.js";
+import { fetchAndPersistEpisodes } from "../services/providers/miruroEpisodes.js";
 import { mergeAnimeMetadata } from "../services/metadata/merge.js";
 import { animeCache, episodesCache } from "../lib/cache.js";
 import { rateLimitConfigs } from "../middleware/rate-limit.js";
+import { AppError } from "../middleware/errors.js";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -114,10 +116,34 @@ export async function animeRoutes(server: FastifyInstance) {
         });
       }
 
-      const episodes = await fetchEpisodes(Number(id));
+      const anilistId = anime.anilist_id;
+      if (!anilistId) {
+        return reply.status(404).send({
+          statusCode: 404,
+          error: "Not Found",
+          message: "Anime has no AniList ID for episode discovery",
+        });
+      }
+
+      // Prefer existing persisted episodes when present
+      let episodes = await findEpisodesByAnimeId(anime.id);
+
+      if (episodes.length === 0) {
+        try {
+          episodes = await fetchAndPersistEpisodes(anime.id, anilistId);
+        } catch (err) {
+          // Upstream provider failure must not look like "zero episodes"
+          if (err instanceof AppError) throw err;
+          throw new AppError(
+            503,
+            "ProviderUnavailable",
+            err instanceof Error ? err.message : "Episode discovery failed"
+          );
+        }
+      }
 
       const response = {
-        animeId: id,
+        animeId: anime.id,
         episodes,
       };
 

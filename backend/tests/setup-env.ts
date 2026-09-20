@@ -11,8 +11,7 @@ process.env.TMDB_ACCESS_TOKEN ||= "tmdb_test_token";
 process.env.ANILIST_ENDPOINT ||= "https://graphql.anilist.co";
 process.env.JIKAN_ENDPOINT ||= "https://api.jikan.moe/v4";
 
-process.env.CONSUMET_ENDPOINT ||= "https://consumet.test";
-process.env.CONSUMET_FALLBACK_ENDPOINT ||= "https://consumet-fallback.test";
+process.env.MIRURO_ENDPOINT ||= "https://miruro.test/api";
 
 process.env.STREAM_PROXY_URL ||= "https://crunchyroll-stream-test.sniffingbug.workers.dev";
 
