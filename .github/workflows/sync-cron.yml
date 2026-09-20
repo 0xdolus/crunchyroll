@@ -8,12 +8,14 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
+
     steps:
       - name: Sync trending
         run: |
           curl -sf -X POST \
             -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
             -H "Content-Type: application/json" \
+            -d '{}' \
             "${{ secrets.BACKEND_URL }}/sync/trending"
 
       - name: Sync seasonal
@@ -21,6 +23,7 @@ jobs:
           curl -sf -X POST \
             -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
             -H "Content-Type: application/json" \
+            -d '{}' \
             "${{ secrets.BACKEND_URL }}/sync/seasonal"
 
       - name: Sync metadata
@@ -28,4 +31,5 @@ jobs:
           curl -sf -X POST \
             -H "Authorization: Bearer ${{ secrets.SYNC_SECRET }}" \
             -H "Content-Type: application/json" \
+            -d '{}' \
             "${{ secrets.BACKEND_URL }}/sync/metadata"
