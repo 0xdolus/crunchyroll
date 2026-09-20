@@ -1,0 +1,7 @@
+name = "crunchyroll-api"
+main = "src/index.js"
+compatibility_date = "2026-09-20"
+workers_dev = true
+
+[vars]
+MIRURO_BASE = "https://www.miruro.tv/api"

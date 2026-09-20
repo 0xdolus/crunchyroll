@@ -1,0 +1,7 @@
+{
+  "name": "crunchyroll-api-worker",
+  "private": true,
+  "devDependencies": {
+    "wrangler": "^4"
+  }
+}
